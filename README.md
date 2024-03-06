@@ -59,53 +59,67 @@
       CLS.__init__(cls, 23)  #__init__第一个参数要为实例对象
     ```
 ## 单例模式
-* __new__实现单例模式
-   ```python
-   class Singleton():
-       def __new__(cls, *args, **kw):
-           if not hasattr(cls, '_instance'):
-               cls._instance = super(Singleton, cls).__new__(cls, *args, **kw)
-           return cls._instance
-   ```
-   ```python
-   import threading
-   class Singleton():
-       _instance = None
-       _lock = threading.RLock() # 定义锁
-       def __new__(cls, *args, **kw):
-           if cls._instance: # 如果有实例，就不在抢锁，避免IO等待
-               return cls._instance
-           with cls._lock:
-               if not hasattr(cls, '_instance'):
-                   cls._instance = super().__new__(cls, *args **kw)
-               return cls._instance
-   ```
-* 模块导入方式
-  ```python
-  # 基本原理，当导入一个py文件时，会执行这个模块的代码，然后讲这个模块的名称空间加载到内存。再次导入时，不会再执行该文件，而是在内存中找
-  # cls_singleton.py
-  class singleton():
-      pass
+1. __new__实现单例模式
+    ```python
+    class Singleton():
+        def __new__(cls, *args, **kw):
+            if not hasattr(cls, '_instance'):
+                cls._instance = super(Singleton, cls).__new__(cls, *args, **kw)
+            return cls._instance
+    ```
+    ```python
+    # 加锁版本
+    import threading
+    class Singleton():
+        _instance = None
+        _lock = threading.RLock() # 定义锁
+        def __new__(cls, *args, **kw):
+            if cls._instance: # 如果有实例，就不在抢锁，避免IO等待
+                return cls._instance
+            with cls._lock:
+                if not hasattr(cls, '_instance'):
+                    cls._instance = super().__new__(cls, *args **kw)
+                return cls._instance
+    ```
+2. 模块导入方式
+     ```python
+     # 基本原理，当导入一个py文件时，会执行这个模块的代码，然后将这个模块的名称空间加载到内存。再次导入时，不会再执行该文件，而是在内存中找
+     # cls_singleton.py
+     class singleton():
+         pass
 
-  instance = singleton()
+     instance = singleton()
 
-  # test.py
-  import cls_singleton
-  c1 = cls_sinleton.instance
-  c2 = cls_sinleton.instance
-  print(c1 is c2)
-  ```
-* 元类方式
-  ```python
-  class singletonMeta(type):
-      _instances = {}
-      def __call__(cls, *args, **kw):
-          if cls not in cls._instances:
-              cls._instances[cls] = super(singletonMeta, cls).__call__(*args, **kw)
-          return cls._instances[cls]
+     # test.py
+     import cls_singleton
+     c1 = cls_sinleton.instance
+     c2 = cls_sinleton.instance
+     print(c1 is c2)
+     ```
+3. 元类方式
+     ```python
+     class singletonMeta(type):
+         _instances = {}
+         def __call__(cls, *args, **kw):
+             if cls not in cls._instances:
+                 cls._instances[cls] = super(singletonMeta, cls).__call__(*args, **kw)
+             return cls._instances[cls]
 
-  class singletonClass(metaclass=singletonMeta):
-      pass
-  ```
+     class singletonClass(metaclass=singletonMeta):
+         pass
+    ```
+4. 装饰器
+    ```python
+    def singleton(cls):
+        _instance = {}
 
+    def warrper(*args, **kwargs):
+        if cls not in _instance:
+            _instance[cls] = cls(*args, **kwargs)
+        return _instance[cls]
+    return warrper
 
+   @singleton
+   class Myclass():
+       a = 1
+    ```
