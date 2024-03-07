@@ -59,6 +59,7 @@
     if isinstance(cls, CLS): # 判断cls是CLS的实例
       CLS.__init__(cls, 23)  #__init__第一个参数要为实例对象
     ```
+* 新式类中的__slots__属性
 ## 单例模式
 1. __new__实现单例模式
     ```python
@@ -84,7 +85,7 @@
     ```
 2. 模块导入方式
      ```python
-     # 基本原理，当导入一个py文件时，会执行这个模块的代码，然后将这个模块的名称空间加载到内存。再次导入时，不会再执行该文件，而是在内存中找
+     # 当导入一个py文件时，会执行这个模块的代码，然后将这个模块的名称空间加载到内存。再次导入时，不会再执行该文件，而是在内存中找
      # cls_singleton.py
      class singleton():
          pass
@@ -124,3 +125,76 @@
    class Myclass():
        a = 1
     ```
+## super与mro机制
+* 先看一道题
+    ```python
+    class A:
+        def fun(self):
+            print('A.fun')
+     
+    class B(A):                                
+        def fun(self):
+            super(B , self).fun()
+            print('B.fun')
+ 
+    class C(A):
+        def fun(self):
+            super(C , self).fun()
+            print('C.fun')
+ 
+    class D(B , C):
+        def fun(self):
+            super(D , self).fun()
+            print('D.fun')
+  
+    D().fun()
+    # 输出结果如下：
+    A.fun C.fun B.fun D.fun
+    ```  
+    为什么输出顺序是A->C->B->D而不是A->B->C->D呢？
+* __mro机制__
+  
+  事实上，在每个类声明之后，Python都会自动为创建一个名为“\_\_mro__”的内置属性，这个属性就是Python的MRO机制生成的，该属性是一个tuple，定义的是该类的方法解析顺序（继承顺序），当用super调用父类的方法时，会按照\_\_mro__属性中的元素顺序去挨个查找方法。
+        
+  在Python新式类中（Python3中也只存在新式类了），采用的是C3算法（可不是广度优先，更不是深度优先）。我们通过如下图所示的继承关系来简单介绍C3算法（箭头指向父类）
+
+  ![image](https://github.com/nicaiwojiaoshaba/python_organization/assets/38779020/ddd59d2f-68db-42f2-be07-99bc3946a1f0)
+
+  C3算法过程如下
+  >1. 将入度（指向该节点的箭头数量）为0的D节点放入列表,并将D节点和D节点有关的箭头从上图树中删除
+  >2. 继续找入度为0的节点，B和C满足，左侧优先，将B放入现有列表，并删除B节点和有关箭头
+  >3. 此时入度为0的节点为C节点，将C放入列表
+  >4. 最后将A放入列表
+    
+  所以上图中经过C3算法计算得出的继承顺序为D->B->C->A
+
+  继承顺序决定后，剩下的就是代码输出顺序的问题，所以需要了解super的用法。
+
+* __super__  
+  super是一个类（不是方法），实例化之后得到的是一个代理的对象，而不是得到了父类，并且我们使用这个代理对象来调用父类或者兄弟类的方法。
+
+  super的几种传参方式
+  > super()  
+  > super(type, obj)  
+  > super(type_1, type_2)
+
+  一. __super(type , obj)__
+    
+  在上文中说到，super会按照\_\_mor__属性中的顺序去查找方法，super(type, obj)两个参数中type作用是定义在\_\_mor__数组的哪个位置开始找，obj定义的是用哪个类的\_\_mor__元素
+
+  结合上题，D类的__mro__顺序是D->B->C->A,在D类中调用fun方法，然后在D类的fun方法中遇到super(D, self).fun(),其中self是D类的实例化对象，所以采用D类的__mor__顺序，其中指明D后面是B,
+  所以继续调用B类的fun方法，遇到super(B , self).fun()，这时候需要注意，这里的self还是原来的D类实例（千万注意不是B类实例），所以还是用D类的__mro__顺序，那就继续调用下一个C类的fun方法，
+  ，同理继续调用下一个父类，也就是A类的fun方法，执行完A类的fun方法后，回到C的fun方法中，打印输出，然后回到B类的fun方法，直到D类的fun方法打印输出完。
+## 魔法函数
+* **\_\_call__**  
+  把对象当成函数来使用的时候会自动调用。也就是说把类的实例化对象，变成一个可以调用的对象，可以让实例对象像函数一样被调用。
+  ```python
+  class A():
+      def __call__(self, attr):
+          print("把对象当成函数使用：", attr)
+
+  a = A()
+  a("调用方法一")
+  a.__call__("调用方法二")
+  ```
+
