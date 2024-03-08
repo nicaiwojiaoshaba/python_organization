@@ -28,6 +28,62 @@
 * 使用场景：插入日志、性能测试、事务处理、缓存、权限校验
 * 装饰器可以极大程度的复用代码，但是原函数的元信息会丢失，例如（__name__,__doc__）等，可以使用functools库中的wraps方法解决，将原函数的元信息拷贝到装饰器函数中。
 
+  __一.不带参数装饰器简单实现__
+  ```python
+  def decorator(func):
+      def wrapper(*args, **kwargs):
+          print("装饰器追加功能")
+          func(*args, **kwargs)
+      return wrapper
+
+  @decorator
+  def show(name, age):
+      print(f"我叫{name}, 今年{age}岁")
+
+  show("张三", 22)
+  ```
+  @无参装饰器执行顺序拆解：
+  
+  1.@decorator相当于show = decorator(show)。也就是说，我们在进行不带参数的装饰器的调用时，相当于把下面的函数名当做参数传给了@后面的函数，@decorator也就相当于执行了decorator(show)。  
+  
+  2.decorator()函数返回了wrapper函数的内存地址。下面的show(name, age)其实就是调用了"闭包"wrapper(*args, **kwargs),进行了wrapper(*args, **kwargs)函数里面的操作  
+  
+  3.简单描述就是show("张三", 22)其实调用的是decorator()函数中的wrapper()函数，wrapper()函数中的func()函数是被装饰的show()函数
+
+  __二.带参数装饰器__
+  ```python
+  def wrapper_out(parameter):
+      print(parameter)
+
+      def wrapper(func):
+          def inner(*args, **kwargs):
+              ret = func(*args, **kwargs)
+              return ret
+          return inner
+  
+      return wrapper
+
+  @wrapper_out('QQ')
+  def qq():
+      print('成功登录qq')
+
+  qq()
+  ```
+  @带参装饰器执行顺序拆解：
+    
+  1.执行wrapper_out('QQ')这个函数，把相应的参数'QQ'传给parameter，并且得到返回值wrapper函数名
+    
+  2.将@与wrapper结合，得到之前熟悉的标准版的装饰器，按照装饰器的执行流程执行。
+  
+  __三.多个装饰器修改一个函数__
+  ```python
+  @outter_1
+  @outter_2
+  @outter_3
+  def show_1():
+      print("show_1")
+  ```
+  如果多个装饰器修饰同一个函数，采用就近原则从下往上传参，然后从上往下执行代码。
 ## python多进程之前如何进行通信
 
 * 队列（Queue）:多个进程可以共享一个队列，一个进程往队列中写入数据，另一个进程从队列中读取数据。
