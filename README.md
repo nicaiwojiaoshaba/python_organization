@@ -172,11 +172,11 @@
     def singleton(cls):
         _instance = {}
 
-    def warrper(*args, **kwargs):
-        if cls not in _instance:
-            _instance[cls] = cls(*args, **kwargs)
-        return _instance[cls]
-    return warrper
+      def warrper(*args, **kwargs):
+          if cls not in _instance:
+              _instance[cls] = cls(*args, **kwargs)
+          return _instance[cls]
+      return warrper
 
    @singleton
    class Myclass():
